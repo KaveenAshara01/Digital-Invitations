@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function NotFound() { return <div className="mx-auto max-w-lg px-6 py-16"><p className="text-xs tracking-widest text-accent uppercase">A little detour</p><h1 className="my-5 text-4xl">We couldn’t find that page.</h1><p className="mb-8 text-ink/70">The link may have changed, or this invitation may not belong to your account.</p><Link className="button" href="/dashboard">Back to your invitations</Link></div>; }

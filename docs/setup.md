@@ -17,10 +17,11 @@ Create a Neon project and database, then copy its PostgreSQL connection string i
 ```powershell
 npm run db:generate
 npm run db:deploy
+npm run db:seed
 npm run dev
 ```
 
-Visit http://localhost:3000, register with a password of at least 12 characters, and open the dashboard. Update your name in Account settings, sign out, and sign back in. No users or invitations are seeded. Invitation creation is Phase 2.
+Visit http://localhost:3000, register with a password of at least 12 characters, and open the dashboard. Update your name in Account settings, sign out, and sign back in. No users or invitations are seeded. Templates and the live editor are available; see [Phase 2](phase2.md) for the complete workflow.
 
 ## Checks
 

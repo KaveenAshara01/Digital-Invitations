@@ -1,0 +1,38 @@
+import type { CSSProperties, ComponentType } from 'react';
+import type { InvitationConfig, SectionId } from '@/lib/validation/invitation';
+import type { TemplateDefinition } from '@/lib/templates/registry';
+import { eventDateLabel, eventTimeLabel } from '@/lib/templates/time';
+import { Countdown } from './countdown';
+import { CinematicOpening } from './cinematic-opening';
+type Props = { config: InvitationConfig; compact?: boolean };
+const fonts = { classic: "Georgia, 'Times New Roman', serif", romantic: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", modern: 'Arial, Helvetica, sans-serif' };
+function Botanical({ floral = false }: { floral?: boolean }) {
+  return <svg aria-hidden="true" className={`botanical ${floral ? 'botanical-floral' : ''}`} viewBox="0 0 240 120" fill="none"><path d="M20 104C82 108 101 41 210 14M77 91C46 67 43 54 48 38M122 58C106 31 111 22 126 11M165 34C169 52 177 67 197 68" stroke="currentColor" strokeWidth="1.4"/>{[[65,72],[111,57],[154,34],[180,24]].map(([x,y]) => <g key={x} transform={`translate(${x} ${y}) rotate(-25)`}><ellipse cx="-8" cy="-13" rx="8" ry="19" stroke="currentColor"/><ellipse cx="14" cy="7" rx="17" ry="7" stroke="currentColor"/></g>)}{floral && [[41,35],[123,10],[196,70]].map(([x,y]) => <g key={x} transform={`translate(${x} ${y})`}>{[0,60,120].map(angle => <ellipse key={angle} rx="8" ry="17" transform={`rotate(${angle})`} fill="currentColor" opacity=".2"/>)}<circle r="3" fill="currentColor"/></g>)}</svg>;
+}
+function HeroText({ config }: Props) {
+  return <><p className="inv-eyebrow">{config.greeting}</p><h2 className="inv-hosts" style={{ fontSize: `calc(clamp(2.4rem, 7vw, 4rem) * ${config.theme.headingScale})` }}>{config.hosts}</h2><p className="inv-event-title">{config.eventTitle}</p><div className="inv-divider"/><p className="inv-date">{eventDateLabel(config.dateTime)}</p><p className="inv-small">{config.venue || 'Venue to be announced'}</p></>;
+}
+function ElegantHero(props: Props) { return <header className="inv-hero hero-elegant"><Botanical/><div className="ivory-arch"><HeroText {...props}/></div></header>; }
+function CinematicHero(props: Props) { return <header className="inv-hero hero-cinematic"><div aria-hidden="true" className="celestial-star">✧</div><div className="cinematic-frame"><HeroText {...props}/></div><p className="inv-eyebrow mt-8">The next chapter starts with you</p></header>; }
+function MinimalHero(props: Props) { return <header className="inv-hero hero-minimal"><p className="inv-eyebrow minimal-topline">An invitation to gather <span aria-hidden="true">↗</span></p><HeroText {...props}/><div className="minimal-mark" aria-hidden="true">/</div></header>; }
+function FloralHero(props: Props) { return <header className="inv-hero hero-floral"><Botanical floral/><div className="floral-frame"><HeroText {...props}/></div><Botanical floral/></header>; }
+function BirthdayHero(props: Props) { return <header className="inv-hero hero-birthday"><div className="confetti" aria-hidden="true">{Array.from({length: 12},(_,i)=><i key={i} style={{left:`${(i * 29) % 95}%`,top:`${(i * 41) % 85}%`,transform:`rotate(${i * 31}deg)`}}/>)}</div><span className="birthday-sun" aria-hidden="true">✹</span><HeroText {...props}/><p className="inv-eyebrow mt-8">Good times ahead</p></header>; }
+function EngagementHero(props: Props) { return <header className="inv-hero hero-engagement"><div className="engagement-rings" aria-hidden="true"><i/><i/></div><HeroText {...props}/><p className="serif mt-8 text-xl italic">A little yes. A lifetime of love.</p></header>; }
+function TraditionalHero(props: Props) { return <header className="inv-hero hero-traditional"><div className="traditional-frame"><span aria-hidden="true" className="traditional-rosette">❋</span><HeroText {...props}/><span aria-hidden="true" className="traditional-rosette">❋</span></div></header>; }
+function PhotoHero(props: Props) { return <header className="inv-hero hero-photo"><div className="photo-placeholder"><svg aria-hidden="true" viewBox="0 0 400 260"><rect width="400" height="260" fill="#bfcdb9"/><circle cx="280" cy="70" r="38" fill="#fff3d3"/><path d="M0 180Q100 80 220 170T400 135V260H0Z" fill="#81977e"/><path d="M0 215Q140 130 265 205T400 170V260H0Z" fill="#556e58"/></svg><span>Your cover photo</span></div><HeroText {...props}/></header>; }
+const heroes: Record<TemplateDefinition['kind'], ComponentType<Props>> = { elegant: ElegantHero, cinematic: CinematicHero, minimal: MinimalHero, floral: FloralHero, birthday: BirthdayHero, engagement: EngagementHero, traditional: TraditionalHero, photo: PhotoHero };
+function Section({ id, config }: { id: SectionId; config: InvitationConfig }) {
+  if (id === 'story') return <section className="inv-section"><p className="inv-eyebrow">A note from us</p><h3>Some moments deserve good company.</h3><p className="inv-body">{config.description}</p></section>;
+  if (id === 'details') return <section className="inv-section"><p className="inv-eyebrow">The celebration</p><h3>{config.venue || 'A special place'}</h3><p className="inv-body">{config.address}</p><p className="inv-body">{eventDateLabel(config.dateTime)}{config.dateTime && <><br/>{eventTimeLabel(config.dateTime)} · {config.timeZone.replace(/_/g, ' ')}</>}</p>{config.mapUrl && /^https:\/\//.test(config.mapUrl) && <a className="inv-link" href={config.mapUrl} target="_blank" rel="noopener noreferrer">View location ↗</a>}{config.dressCode && <div className="inv-detail"><p className="inv-eyebrow">Dress code</p><p>{config.dressCode}</p></div>}{config.extraInfo && <p className="inv-body">{config.extraInfo}</p>}</section>;
+  if (id === 'gallery') return <section className="inv-section"><p className="inv-eyebrow">Our memories</p><h3>A story in pictures.</h3><div className="inv-gallery-placeholders" aria-label="Photo placeholders">{['One lovely moment', 'Another little memory', 'More to come'].map(label=><div key={label}><span aria-hidden="true">✳</span><small>{label}</small></div>)}</div><p className="inv-small mt-5">Your photos will appear here after you add them.</p></section>;
+  if (id === 'rsvp' && config.rsvp.enabled) return <section className="inv-section"><p className="inv-eyebrow">Save us a seat</p><h3>Will you join us?</h3><p className="inv-body">{config.rsvp.note}</p><p className="inv-small">Responses will be available when guest links are ready.</p></section>;
+  return null;
+}
+export function InvitationRenderer({ template, configuration, compact = false, showOpening = true }: { template: TemplateDefinition; configuration: InvitationConfig; compact?: boolean; showOpening?: boolean }) {
+  const Hero = heroes[template.kind];
+  const style = { '--inv-background': configuration.theme.background, '--inv-ink': configuration.theme.ink, '--inv-accent': configuration.theme.accent, '--inv-font': fonts[configuration.theme.font] } as CSSProperties;
+  const body = <><Hero config={configuration} compact={compact}/>{!compact && <>{configuration.countdown && configuration.dateTime && <Countdown dateTime={configuration.dateTime} timeZone={configuration.timeZone}/>}<div className="inv-sections">{configuration.sections.filter(s=>s.visible).map(section=><Section key={section.id} id={section.id} config={configuration}/>)}</div><footer className="inv-footer"><span aria-hidden="true">✳</span><p>With love, {configuration.hosts}</p></footer></>}</>;
+  return <article className={`invitation invitation-${template.kind} ${compact ? 'invitation-compact' : ''}`} style={style} aria-label={`${configuration.hosts} invitation`}>
+    {template.cinematic && showOpening && !compact ? <CinematicOpening enabled={configuration.opening === 'reveal'}>{body}</CinematicOpening> : body}
+  </article>;
+}

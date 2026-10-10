@@ -39,8 +39,8 @@ export function getAuth() {
   instance ??= createAuth();
   return instance;
 }
-export async function requireUser() {
+export async function requireUser(returnPath = '/dashboard') {
   const session = await getAuth().api.getSession({ headers: await headers() });
-  if (!session) redirect('/login');
+  if (!session) redirect(`/login?next=${encodeURIComponent(returnPath)}`);
   return session.user;
 }
