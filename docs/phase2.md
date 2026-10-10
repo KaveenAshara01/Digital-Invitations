@@ -25,6 +25,8 @@ The Phase 2 migration and template seed were applied to the configured Neon data
 
 This phase uses explicit saving. Autosave and publishing are Phase 4. Drafts do not have public invitation URLs. Photo/video/audio uploads arrive in Phase 3; guest responses arrive in Phase 5. The cinematic design includes original CSS doors, a skip/replay control, and reduced-motion support. It does not claim to include a finished video asset. Gallery/cover placeholders reserve the layout for customer media.
 
+All eight designs now include original animation: botanical swaying, drifting petals, golden lights, moving confetti, ring reveals, editorial text entrances, and gentle image motion. Use **Animate preview** in the gallery to load one live design at a time. The invitation and editor expose pause/replay controls. Decorative motion stops offscreen and honours the device's reduced-motion preference. Animation controls do not change or reset invitation content, and existing saved drafts gain the shared animation layer without a schema migration.
+
 ## Template architecture
 
 `src/lib/templates/registry.ts` defines the catalogue, default themes/content, supported sections, and configuration versions. Each of the eight designs has its own React hero component and styling in `src/components/templates/invitation-renderer.tsx`, using a common section renderer and editor. The gallery uses lightweight original SVG posters, not videos. These posters are previews only; invitations render real HTML/React text.

@@ -4,6 +4,7 @@ import type { TemplateDefinition } from '@/lib/templates/registry';
 import { eventDateLabel, eventTimeLabel } from '@/lib/templates/time';
 import { Countdown } from './countdown';
 import { CinematicOpening } from './cinematic-opening';
+import { AnimatedInvitation } from './animated-invitation';
 type Props = { config: InvitationConfig; compact?: boolean };
 const fonts = { classic: "Georgia, 'Times New Roman', serif", romantic: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", modern: 'Arial, Helvetica, sans-serif' };
 function Botanical({ floral = false }: { floral?: boolean }) {
@@ -33,6 +34,6 @@ export function InvitationRenderer({ template, configuration, compact = false, s
   const style = { '--inv-background': configuration.theme.background, '--inv-ink': configuration.theme.ink, '--inv-accent': configuration.theme.accent, '--inv-font': fonts[configuration.theme.font] } as CSSProperties;
   const body = <><Hero config={configuration} compact={compact}/>{!compact && <>{configuration.countdown && configuration.dateTime && <Countdown dateTime={configuration.dateTime} timeZone={configuration.timeZone}/>}<div className="inv-sections">{configuration.sections.filter(s=>s.visible).map(section=><Section key={section.id} id={section.id} config={configuration}/>)}</div><footer className="inv-footer"><span aria-hidden="true">✳</span><p>With love, {configuration.hosts}</p></footer></>}</>;
   return <article className={`invitation invitation-${template.kind} ${compact ? 'invitation-compact' : ''}`} style={style} aria-label={`${configuration.hosts} invitation`}>
-    {template.cinematic && showOpening && !compact ? <CinematicOpening enabled={configuration.opening === 'reveal'}>{body}</CinematicOpening> : body}
+    {compact ? body : <AnimatedInvitation kind={template.kind}>{template.cinematic && showOpening ? <CinematicOpening enabled={configuration.opening === 'reveal'}>{body}</CinematicOpening> : body}</AnimatedInvitation>}
   </article>;
 }

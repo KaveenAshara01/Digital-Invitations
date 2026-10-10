@@ -7,6 +7,31 @@ import { InvitationRenderer } from '../src/components/templates/invitation-rende
 import { TemplateGallery } from '../src/components/template-gallery';
 import { templates, freshConfiguration } from '../src/lib/templates/registry';
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+test('animated invitations can pause and replay without changing editable content', async () => {
+  const user = userEvent.setup(); render(<InvitationRenderer template={templates[3]} configuration={freshConfiguration(templates[3])}/>);
+  const heading = screen.getByRole('heading',{name:'Amaya & Kavin'});
+  await user.click(screen.getByRole('button',{name:'Pause animations'}));
+  expect(document.querySelector('.animated-invitation')?.classList.contains('motion-stopped')).toBe(true);
+  expect((screen.getByRole('button',{name:'Replay animations'}) as HTMLButtonElement).disabled).toBe(true);
+  await user.click(screen.getByRole('button',{name:'Play animations'}));
+  await user.click(screen.getByRole('button',{name:'Replay animations'}));
+  expect(screen.getByRole('heading',{name:'Amaya & Kavin'})).not.toBe(heading);
+});
+test('reduced-motion preferences keep content visible and disable decorative playback', async () => {
+  vi.stubGlobal('matchMedia',()=>({matches:true,addEventListener:vi.fn(),removeEventListener:vi.fn()}));
+  render(<InvitationRenderer template={templates[4]} configuration={freshConfiguration(templates[4])}/>);
+  await waitFor(()=>expect(screen.getByText('Reduced motion')).toBeTruthy());
+  expect(screen.getByRole('heading',{name:'Maya turns 30'})).toBeTruthy();
+  expect((screen.getByRole('button',{name:'Pause animations'}) as HTMLButtonElement).disabled).toBe(true);
+});
+test('gallery loads an animated design only when its preview is requested', async () => {
+  const user = userEvent.setup(); render(<TemplateGallery templates={templates}/>);
+  expect(document.querySelector('.animated-invitation')).toBeNull();
+  await user.click(screen.getAllByRole('button',{name:'Animate preview'})[0]);
+  expect(document.querySelectorAll('.animated-invitation')).toHaveLength(1);
+  await user.click(screen.getByRole('button',{name:'Close animated preview'}));
+  expect(document.querySelector('.animated-invitation')).toBeNull();
+});
 function renderEditor(index = 0) { return render(<InvitationEditor id="test-draft" template={templates[index]} initial={{title:'Our wedding',revision:0,configuration:freshConfiguration(templates[index])}}/>); }
 test('editing names updates the live preview immediately and marks unsaved changes', async () => {
   const user = userEvent.setup(); renderEditor();

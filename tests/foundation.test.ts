@@ -107,6 +107,19 @@ test('templates seed idempotently with immutable version definitions', async () 
   await seedTemplates(db);
   expect((await db.templateVersion.findUniqueOrThrow({ where: { id: 'ivory-vows:1' } })).definition).toEqual(original.definition);
 });
+test('database cache refreshes when the generated schema changes', async () => {
+  const cache = globalThis as unknown as { prismaPg?: PrismaClient; prismaPgSchema?: string };
+  const previous = { client: cache.prismaPg, schema: cache.prismaPgSchema };
+  let disconnected = false;
+  cache.prismaPg = { $disconnect: async () => { disconnected = true; } } as unknown as PrismaClient;
+  cache.prismaPgSchema = 'previous-schema';
+  const { getDb } = await import('../src/lib/db/client');
+  let refreshed: PrismaClient | undefined;
+  try {
+    refreshed = getDb(); expect(disconnected).toBe(true);
+    expect(refreshed.templateVersion).toBeDefined(); expect(getDb()).toBe(refreshed);
+  } finally { if (refreshed) await refreshed.$disconnect(); cache.prismaPg = previous.client; cache.prismaPgSchema = previous.schema; }
+});
 function privateRequest(path: string, method: string, cookie: string, body?: unknown, requestOrigin = origin) {
   return new Request(`${origin}${path}`, { method, headers: { cookie, origin: requestOrigin, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
 }
