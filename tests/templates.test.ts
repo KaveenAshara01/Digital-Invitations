@@ -3,9 +3,9 @@ import { templates, freshConfiguration } from '../src/lib/templates/registry';
 import { invitationConfigSchema } from '../src/lib/validation/invitation';
 import { eventInstant } from '../src/lib/templates/time';
 import { safeReturnPath } from '../src/lib/auth/return-path';
-test('all eight original templates have valid, independent versioned defaults', () => {
-  expect(templates).toHaveLength(8); expect(new Set(templates.map(t=>t.kind)).size).toBe(8);
-  expect(new Set(templates.map(t=>t.slug)).size).toBe(8);
+test('all original templates have valid, independent versioned defaults', () => {
+  expect(templates).toHaveLength(9); expect(new Set(templates.map(t=>t.kind)).size).toBe(9);
+  expect(new Set(templates.map(t=>t.slug)).size).toBe(9);
   for (const template of templates) expect(invitationConfigSchema.safeParse(template.defaults).success).toBe(true);
   const copy = freshConfiguration(templates[0]); copy.theme.background = '#000000'; copy.sections.reverse();
   expect(templates[0].defaults.theme.background).toBe('#faf7f0'); expect(templates[0].defaults.sections[0].id).toBe('story');

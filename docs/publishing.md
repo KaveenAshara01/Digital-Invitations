@@ -1,0 +1,13 @@
+# Phase 4: autosave and publishing
+
+Changes to invitation content, appearance and music save after a 1.2-second pause. Save draft remains available. A save records the revision sent to the server; edits made while it is in progress stay dirty and are saved next. Connection failures retain edits and offer manual retry. Revision conflicts stop autosave until the saved draft is reloaded. The unsaved-changes browser warning stays active until saving succeeds.
+
+Open the editor's Publish panel after saving and uploading media. Publish creates a separate immutable configuration snapshot and pins its ready media files. The public link is `/i/<random UUID>`. Anyone with this link can view the published invitation and its included media; there is no guest authentication in this phase. The dashboard name, owner ID, draft configuration and unpublished files are not exposed by the public page. Pages are dynamic and marked noindex; the UUID is an unlisted link, not a password.
+
+Draft changes do not change the published page. Republish updates the same public URL to a new snapshot. Publishing checks the saved revision and expected media IDs and serializes with media-reference changes. Repeated publication of an unchanged current snapshot reuses it. Duplicates start as private drafts without a public link.
+
+Unpublish disables the public page and future media-link resolutions. Deleting an invitation removes its snapshots and disables its link. Published media URLs resolve against the active snapshot and redirect to private R2 reads valid for 60 seconds. Existing downloads, open pages, and previously issued signed URLs cannot be recalled immediately. Snapshot media remains protected from cleanup, including older snapshots retained for history, until the invitation is deleted. There is no public snapshot-history endpoint.
+
+Run `npm run db:generate` and `npm run db:deploy` before restarting the app. Migration `202610170004_publishing` adds publication tables and nullable fields; it preserves accounts, drafts and media. On this workstation Prisma's native migration engine could not connect while the PostgreSQL driver could; the tracked SQL was applied through a certificate-verified driver transaction with the Prisma migration advisory lock and checksum recorded in `_prisma_migrations`. No credentials or endpoint values were changed.
+
+Validation covers autosave debouncing, in-flight edits and conflicts, authentication and ownership, cross-origin mutations, publication isolation, republishing, stable links, unpublished-media denial, protected snapshot references, unpublishing and deletion. Guest lists and RSVP submission remain Phase 5.

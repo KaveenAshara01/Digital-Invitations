@@ -77,10 +77,10 @@ test('cinematic template opens and replays without requiring audio or autoplay',
 });
 test('gallery filtering and search work without downloading template videos', async () => {
   const user = userEvent.setup(); render(<TemplateGallery templates={templates}/>);
-  expect(screen.getAllByRole('article')).toHaveLength(8);
+  expect(screen.getAllByRole('article')).toHaveLength(9);
   await user.click(screen.getByRole('button',{name:'Birthday'})); expect(screen.getAllByRole('article')).toHaveLength(1);
   await user.type(screen.getByRole('searchbox'),'unmatched'); expect(screen.queryAllByRole('article')).toHaveLength(0);
-  await user.click(screen.getByRole('button',{name:'Show all designs'})); expect(screen.getAllByRole('article')).toHaveLength(8); expect(document.querySelector('video')).toBeNull();
+  await user.click(screen.getByRole('button',{name:'Show all designs'})); expect(screen.getAllByRole('article')).toHaveLength(9); expect(document.querySelector('video')).toBeNull();
 });
 test('a stale-tab conflict requires loading the latest draft before saving', async () => {
   const user = userEvent.setup(); const configuration = freshConfiguration(templates[0]); configuration.hosts = 'Latest saved names';

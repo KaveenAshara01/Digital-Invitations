@@ -1,0 +1,27 @@
+@font-face { font-family:'Abhaya Libre'; src:url('/fonts/AbhayaLibre-Regular.ttf') format('truetype'); font-weight:400; font-style:normal; font-display:swap; }
+.invitation-kandyan { background-image:radial-gradient(ellipse at 50% 0%,#c5a15c16,transparent 55%); }
+.hero-kandyan { position:relative; isolation:isolate; padding:3.5rem 1.75rem 2rem; overflow:hidden; }
+.kandyan-arch { position:absolute; inset:1rem; border:1px solid var(--inv-accent); border-radius:48% 48% 4px 4px / 22% 22% 4px 4px; opacity:.5; z-index:-1; }
+.kandyan-arch::before { content:''; position:absolute; inset:7px; border:1px solid var(--inv-accent); border-radius:inherit; opacity:.5; }
+.kandyan-lotus { width:105px; height:50px; color:var(--inv-accent); margin:0 auto 1rem; }
+.kandyan-blessing { font-family:'Abhaya Libre',serif; font-size:1.75rem; color:var(--inv-accent); margin:.25rem 0 1.4rem; }
+.hero-kandyan .inv-eyebrow { max-width:330px; line-height:1.9; font-size:.65rem; }
+.hero-kandyan .inv-hosts { max-width:560px; line-height:1.15; margin:1rem 0; overflow-wrap:anywhere; }
+.hero-kandyan .inv-event-title { font-style:italic; opacity:.8; }
+.kandyan-date { display:flex; gap:1rem; align-items:center; justify-content:center; margin:1.5rem 0 0; color:var(--inv-accent); }
+.kandyan-date .inv-date { color:var(--inv-ink); font-size:.85rem; margin:0; }
+.kandyan-couple { display:block; width:min(100%,640px); height:auto; aspect-ratio:3/2; object-fit:contain; margin:1rem auto 0; }
+.kandyan-venue { margin:0 0 1.5rem; }
+.kandyan-scroll { font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; opacity:.7; }
+.kandyan-scroll span { display:block; margin-top:.75rem; font-size:1.1rem; }
+.invitation-kandyan .inv-section { position:relative; margin:0 1rem; padding:3.5rem 1.25rem; border-color:color-mix(in srgb,var(--inv-accent) 35%,transparent); }
+.invitation-kandyan .inv-section h3 { color:var(--inv-ink); }
+.invitation-kandyan .inv-section::before { content:'✦'; position:absolute; top:-.7rem; left:calc(50% - 1rem); width:2rem; color:var(--inv-accent); background:var(--inv-background); }
+.invitation-kandyan .media-photo-grid { gap:.8rem; margin-top:1.5rem; }
+.invitation-kandyan .media-photo-grid img { border-radius:45% 45% 3px 3px; aspect-ratio:3/4; border:1px solid var(--inv-accent); padding:4px; background:var(--inv-background); }
+.invitation-kandyan .media-photo-grid img:nth-child(3n) { border-radius:3px; }
+.invitation-kandyan .inv-footer { padding:3rem 1.5rem; color:var(--inv-accent); }
+.motion-kandyan .ambient-decoration i { width:3px; height:3px; border-radius:50%; animation:inv-golden-drift var(--particle-duration) var(--particle-delay) ease-in-out infinite; }
+.motion-kandyan .kandyan-couple { animation:inv-frame-arrive 1.6s both; }
+.motion-kandyan .kandyan-lotus { animation:inv-mark-float 12s ease-in-out infinite; }
+@media(max-width:420px) { .hero-kandyan { padding:3rem 1.1rem 1.5rem; } .kandyan-date { gap:.6rem; } .invitation-kandyan .inv-countdown { gap:1.1rem; } }

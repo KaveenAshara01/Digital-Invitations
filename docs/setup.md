@@ -62,3 +62,8 @@ After changing dependencies or database configuration, stop the development serv
 R2 placeholders are reserved for Phase 3. This phase neither accesses R2 nor exposes credentials to the browser. Hosting, infrastructure pricing, and deployment documentation are completed in Phase 6.
 
 References: [Next.js installation](https://nextjs.org/docs/app/getting-started/installation), [Better Auth Next.js integration](https://better-auth.com/docs/integrations/next), [Better Auth rate limits](https://better-auth.com/docs/concepts/rate-limit), [Prisma migrations](https://www.prisma.io/docs/orm/prisma-migrate).
+# Development client and cache recovery
+
+`npm run dev` regenerates Prisma automatically before starting Next.js. Prisma packages load as server dependencies, and the persistent Turbopack development cache is disabled to avoid reusing generated-client bundles across schema updates. Stop any existing development server before restarting it after a migration.
+
+If logs report `There is not enough space on the disk`, free disk space. With the server stopped, `.next/dev` is a disposable generated development directory and can be removed manually; do not remove `.env`, `prisma/migrations`, or database data.

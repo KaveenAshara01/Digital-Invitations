@@ -7,6 +7,6 @@ async function main() {
   const url = new URL(process.env.DATABASE_URL);
   if (url.searchParams.get('sslmode') === 'require') url.searchParams.set('sslmode', 'verify-full');
   const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url.toString(), connectionTimeoutMillis: 30_000, max: 5 }) });
-  try { await seedTemplates(db); console.log('Eight template definitions are ready.'); } finally { await db.$disconnect(); }
+  try { await seedTemplates(db); console.log('Template definitions are ready.'); } finally { await db.$disconnect(); }
 }
 main().catch(() => { console.error('Template seeding failed. Check DATABASE_URL, apply migrations, and retry.'); process.exitCode = 1; });

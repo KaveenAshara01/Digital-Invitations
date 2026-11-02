@@ -3,7 +3,7 @@ export const categories = ['Wedding', 'Birthday', 'Engagement', 'Celebration'] a
 export type TemplateDefinition = {
   id: string; slug: string; name: string; description: string;
   category: typeof categories[number]; version: number; previewImage: string;
-  kind: 'elegant' | 'cinematic' | 'minimal' | 'floral' | 'birthday' | 'engagement' | 'traditional' | 'photo';
+  kind: 'elegant' | 'cinematic' | 'minimal' | 'floral' | 'birthday' | 'engagement' | 'traditional' | 'photo' | 'kandyan';
   supportedSections: readonly SectionId[]; cinematic: boolean; defaults: InvitationConfig;
 };
 const base: InvitationConfig = {
@@ -15,7 +15,7 @@ const base: InvitationConfig = {
   sections: [{ id: 'story', visible: true }, { id: 'details', visible: true }, { id: 'gallery', visible: false }, { id: 'rsvp', visible: false }],
 };
 function define(input: Omit<TemplateDefinition, 'id' | 'version' | 'previewImage' | 'supportedSections' | 'defaults' | 'cinematic'>, changes: Partial<InvitationConfig> = {}): TemplateDefinition {
-  return { ...input, id: input.slug, version: 1, previewImage: `/templates/${input.kind}.svg`, supportedSections: ['story', 'details', 'gallery', 'rsvp'], cinematic: input.kind === 'cinematic', defaults: { ...structuredClone(base), ...changes } };
+  return { ...input, id: input.slug, version: 1, previewImage: input.kind === 'kandyan' ? '/templates/kandyan/couple.png' : `/templates/${input.kind}.svg`, supportedSections: ['story', 'details', 'gallery', 'rsvp'], cinematic: input.kind === 'cinematic', defaults: { ...structuredClone(base), ...changes } };
 }
 export const templates: readonly TemplateDefinition[] = [
   define({ slug: 'ivory-vows', name: 'Ivory vows', kind: 'elegant', category: 'Wedding', description: 'An ivory arch, fine botanical lines, and timeless serif lettering.' }),
@@ -26,6 +26,7 @@ export const templates: readonly TemplateDefinition[] = [
   define({ slug: 'the-first-yes', name: 'The first yes', kind: 'engagement', category: 'Engagement', description: 'Interlocking rings, a blush canvas, and the promise of a new beginning.' }, { eventTitle: 'We said yes', greeting: 'Celebrate our engagement with us', theme: { background: '#f5eae7', ink: '#603e36', accent: '#986044', font: 'romantic', headingScale: 1 } }),
   define({ slug: 'golden-gathering', name: 'Golden gathering', kind: 'traditional', category: 'Celebration', description: 'A rich ceremonial border and warm gold details for a special gathering.' }, { hosts: 'The Jayawardena family', eventTitle: 'A celebration of togetherness', theme: { background: '#542e32', ink: '#fff5dc', accent: '#edc78b', font: 'classic', headingScale: 1 }, dressCode: 'Traditional attire welcome' }),
   define({ slug: 'our-story-in-frames', name: 'Our story in frames', kind: 'photo', category: 'Wedding', description: 'An editorial layout with room for your cover photo and shared memories.' }, { theme: { background: '#e9ede6', ink: '#263d35', accent: '#646747', font: 'classic', headingScale: 1 }, sections: base.sections.map(section => ({ ...section, visible: section.id !== 'rsvp' })) }),
+  define({ slug: 'kandyan-vows', name: 'Kandyan vows', kind: 'kandyan', category: 'Wedding', description: 'A Kandyan wedding celebration with lotus ornaments, ceremonial illustrations and Sinhala lettering.' }, { hosts: 'Amaya & Kavin', eventTitle: 'Together, for a lifetime', greeting: 'Together with our families, we invite you to celebrate our wedding', venue: 'The Grand Kandyan', address: 'Kandy, Sri Lanka', dressCode: 'Traditional wedding attire', theme: { background: '#fff9ed', ink: '#682b32', accent: '#a48139', font: 'sinhala', headingScale: 1 }, sections: base.sections.map(section => ({ ...section, visible: section.id !== 'rsvp' })) }),
 ];
 export function getTemplate(slug: string) { return templates.find(template => template.slug === slug); }
 export function getTemplateByVersionId(id: string | null) { return templates.find(template => `${template.id}:${template.version}` === id); }

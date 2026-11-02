@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { musicTrackIds } from '@/lib/media/music';
 
 export const sectionIds = ['story', 'details', 'gallery', 'rsvp'] as const;
-export const fontIds = ['classic', 'romantic', 'modern'] as const;
+export const fontIds = ['classic', 'romantic', 'modern', 'sinhala'] as const;
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Choose a six-digit hex color');
 const localDate = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/).refine(value => {
   const [year, month, day, hour, minute] = value.split(/[-T:]/).map(Number);
@@ -22,6 +23,7 @@ export const invitationConfigSchema = z.object({
   dressCode: z.string().max(180),
   extraInfo: z.string().max(1500),
   theme: z.object({ background: color, ink: color, accent: color, font: z.enum(fontIds), headingScale: z.number().min(.75).max(1.5) }).strict(),
+  music: z.object({ enabled: z.boolean(), trackId: z.enum(musicTrackIds), loop: z.boolean() }).strict().optional(),
   countdown: z.boolean(),
   opening: z.enum(['reveal', 'skip']),
   rsvp: z.object({ enabled: z.boolean(), note: z.string().max(300) }).strict(),

@@ -39,7 +39,10 @@ export function invitationService(db: PrismaClient, ownerId: string) {
       const invitation = await find(id);
       const configuration = invitationConfigSchema.safeParse(invitation.configuration);
       if (!configuration.success || !getTemplateByVersionId(invitation.templateVersionId)) throw new ApiError(409, 'UNSUPPORTED_TEMPLATE', 'This invitation cannot be duplicated yet.');
-      return db.invitation.create({ data: { ownerId, title: `${invitation.title.slice(0, 111)} (copy)`, templateVersionId: invitation.templateVersionId, configuration: configuration.data } });
+      return db.$transaction(async tx => {
+        const media = await tx.mediaReference.findMany({ where: { invitationId: id, asset: { ready: true, ownerId } }, select: { assetId: true } });
+        return tx.invitation.create({ data: { ownerId, title: `${invitation.title.slice(0, 111)} (copy)`, templateVersionId: invitation.templateVersionId, configuration: configuration.data, media: { create: media } } });
+      });
     },
     remove: async (id: string) => {
       const result = await db.invitation.deleteMany({ where: { id, ownerId } });

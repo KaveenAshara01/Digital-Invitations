@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./invitation-motion.css";
+@import "./kandyan.css";
 @theme { --color-cream: #faf7f0; --color-ink: #243e36; --color-accent: #a26945; }
 :root { color: #243e36; background: #faf7f0; font-family: Arial, Helvetica, sans-serif; }
 body { margin: 0; }
@@ -143,3 +144,18 @@ button { cursor: pointer; }
 @media(max-width:767px) { .gallery-heading,.gallery-controls { flex-direction:column; align-items:start; } .gallery-search { width:100%; } .template-preview-layout { grid-template-columns:1fr; } .template-preview-description { position:static; } .template-full-preview { max-width:480px; width:100%; margin:auto; } .editor-layout { display:block; } .editor-toolbar { padding:.8rem 1rem; } .editor-toolbar h1 { max-width:150px; font-size:1rem; } .editor-toolbar [role=status] { max-width:60px; } .editor-mobile-toggle { display:flex; justify-content:center; gap:1rem; padding:.75rem; border-bottom:1px solid #243e3625; } .editor-mobile-toggle button { padding:.6rem 1rem; font-size:.8rem; border-radius:2rem; } .editor-mobile-toggle button[aria-pressed=true] { background:#243e36; color:white; } .editor-controls { border-right:0; } .editor-panel-tabs { position:static; } .mobile-hidden { display:none; } .editor-panel { max-width:550px; margin:auto; } }
 @media(max-width:520px) { .template-grid,.dashboard-grid { grid-template-columns:1fr; } .template-card-info { padding-left:.25rem; } .inv-hero { padding-left:1.5rem; padding-right:1.5rem; } .inv-section { padding:2.25rem 1.5rem; } .inv-hosts { font-size:2.4rem; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+/* Private media: reserve useful image space and avoid downloading video/audio until play. */
+.media-photo-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.media-photo-grid img { width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:12px; }
+.media-photo-grid img:first-child { grid-column:1/-1; aspect-ratio:4/3; }
+.template-preview-layout > * { min-width:0; }
+.inv-music-control { position:sticky; top:12px; z-index:8; height:0; display:flex; justify-content:flex-end; padding-right:14px; pointer-events:none; }
+.inv-music-button { pointer-events:auto; display:grid; place-items:center; width:44px; height:44px; flex-shrink:0; border-radius:50%; border:1px solid var(--inv-accent); color:var(--inv-ink); background:var(--inv-background); box-shadow:0 3px 16px #00000012; }
+.inv-music-button svg { width:20px; height:20px; }
+.inv-music-credit { margin-top:1rem; font: .65rem/1.6 Arial,sans-serif; opacity:.75; }
+.inv-music-credit summary { cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.inv-music-error { position:absolute; top:48px; right:14px; max-width:180px; padding:.5rem; background:var(--inv-background); color:var(--inv-ink); font-size:.7rem; }
+@media(max-width:767px) {
+  .template-preview-layout { grid-template-columns:minmax(0,1fr); }
+  body > header { flex-wrap:wrap; gap:1rem; }
+}

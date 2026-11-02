@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 import EmbeddedPostgres from 'embedded-postgres';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -102,7 +102,7 @@ test('login attempts are rate limited in database storage', async () => {
 test('templates seed idempotently with immutable version definitions', async () => {
   const { seedTemplates } = await import('../src/lib/templates/seed');
   await seedTemplates(db);
-  expect(await db.template.count()).toBe(8); expect(await db.templateVersion.count()).toBe(8);
+  expect(await db.template.count()).toBe(9); expect(await db.templateVersion.count()).toBe(9);
   const original = await db.templateVersion.findUniqueOrThrow({ where: { id: 'ivory-vows:1' } });
   await seedTemplates(db);
   expect((await db.templateVersion.findUniqueOrThrow({ where: { id: 'ivory-vows:1' } })).definition).toEqual(original.definition);
@@ -193,6 +193,140 @@ test('pagination remains scoped to the authenticated owner', async () => {
   expect(new Set([...first.items,...second.items].map(i=>i.id)).size).toBe(13);
   await db.invitation.deleteMany({where:{ownerId:bobId}});
 });
+test('private media enforces ownership, validates completion and preserves shared copies', async () => {
+  const { r2 } = await import('../src/lib/media/storage');
+  const upload = vi.spyOn(r2,'upload').mockResolvedValue('https://example.invalid/upload');
+  const inspect = vi.spyOn(r2,'inspect').mockResolvedValue({size:12,mime:'image/webp',etag:'etag',bytes:new TextEncoder().encode('RIFF0000WEBP')});
+  const finalize = vi.spyOn(r2,'finalize').mockResolvedValue(undefined);
+  const read = vi.spyOn(r2,'read').mockResolvedValue('https://example.invalid/private');
+  const route = await import('../src/app/api/invitations/[id]/media/route');
+  const { invitationService } = await import('../src/lib/invitations/service');
+  const service = invitationService(db,aliceId); const draft = await service.create({templateSlug:'ivory-vows',title:'Media test'});
+  const context={params:Promise.resolve({id:draft.id})}; const path='/api/invitations/'+draft.id+'/media';
+  try {
+    expect((await route.GET(privateRequest(path,'GET',''),context)).status).toBe(401);
+    expect((await route.GET(privateRequest(path,'GET',bobCookie),context)).status).toBe(404);
+    expect((await route.POST(privateRequest(path,'POST',bobCookie,{name:'photo.webp',mime:'image/webp',size:12}),context)).status).toBe(404);
+    expect((await route.POST(privateRequest(path,'POST',aliceCookie,{name:'photo.webp',mime:'image/webp',size:12},'https://evil.example'),context)).status).toBe(403);
+    const response=await route.POST(privateRequest(path,'POST',aliceCookie,{name:'photo.webp',mime:'image/webp',size:12}),context);
+    expect(response.status).toBe(201); const asset=(await response.json()).data;
+    expect((await route.GET(privateRequest(path,'GET',aliceCookie),context).then(r=>r.json())).data).toEqual([]);
+    inspect.mockResolvedValueOnce({size:99,mime:'image/webp',etag:'etag',bytes:new TextEncoder().encode('RIFF0000WEBP')});
+    expect((await route.PATCH(privateRequest(path,'PATCH',aliceCookie,{id:asset.id}),context)).status).toBe(400);expect(finalize).not.toHaveBeenCalled();
+    expect((await route.PATCH(privateRequest(path,'PATCH',aliceCookie,{id:asset.id}),context)).status).toBe(200);
+    expect((await route.PATCH(privateRequest(path,'PATCH',bobCookie,{id:asset.id}),context)).status).toBe(404);
+    const copy=await service.duplicate(draft.id); expect(await db.mediaReference.count({where:{assetId:asset.id}})).toBe(2);
+    await route.DELETE(privateRequest(path,'DELETE',aliceCookie,{id:asset.id}),context);
+    expect(await db.mediaReference.count({where:{assetId:asset.id}})).toBe(1);expect(await db.mediaAsset.count({where:{id:asset.id,ready:true}})).toBe(1);
+    const expired=await db.mediaAsset.create({data:{ownerId:aliceId,key:'expired-test',name:'old',mime:'image/jpeg',size:3,expiresAt:new Date(0),references:{create:{invitationId:draft.id}}}});
+    expect((await route.PATCH(privateRequest(path,'PATCH',aliceCookie,{id:expired.id}),context)).status).toBe(410);
+    await service.remove(copy.id);
+  } finally { await service.remove(draft.id); await db.mediaAsset.deleteMany({where:{ownerId:aliceId}});upload.mockRestore();inspect.mockRestore();finalize.mockRestore();read.mockRestore(); }
+});
+
+test('publishing isolates drafts, preserves media, enforces ownership and revokes public access', async () => {
+  const { invitationService }=await import('../src/lib/invitations/service');
+  const { publicationService,publicPublication }=await import('../src/lib/invitations/publication');
+  const route=await import('../src/app/api/invitations/[id]/publish/route');
+  const mediaRoute=await import('../src/app/i/[slug]/media/[assetId]/route');
+  const { r2 }=await import('../src/lib/media/storage');
+  const read=vi.spyOn(r2,'read').mockResolvedValue('https://example.invalid/public-signed');
+  const service=invitationService(db,aliceId);
+  const draft=await service.create({templateSlug:'kandyan-vows',title:'Private dashboard title'});
+  const publisher=publicationService(db,aliceId);
+  const context={params:Promise.resolve({id:draft.id})};const path=`/api/invitations/${draft.id}/publish`;
+  const asset=await db.mediaAsset.create({data:{ownerId:aliceId,key:'publication-test',name:'Wedding photo',mime:'image/jpeg',size:3,ready:true,expiresAt:new Date(),references:{create:{invitationId:draft.id}}}});
+  try {
+    expect((await publisher.status(draft.id)).url).toBeNull();
+    expect(await publicPublication(db,draft.id)).toBeNull();
+    expect((await route.POST(privateRequest(path,'POST','',{revision:0,mediaIds:[asset.id]}),context)).status).toBe(401);
+    expect((await route.POST(privateRequest(path,'POST',bobCookie,{revision:0,mediaIds:[asset.id]}),context)).status).toBe(404);
+    expect((await route.POST(privateRequest(path,'POST',aliceCookie,{revision:0,mediaIds:[asset.id]},'https://evil.example'),context)).status).toBe(403);
+    await expect(publisher.publish(draft.id,{revision:99,mediaIds:[asset.id]})).rejects.toMatchObject({status:409});
+    await expect(publisher.publish(draft.id,{revision:0,mediaIds:[]})).rejects.toMatchObject({code:'MEDIA_CHANGED'});
+    const first=await publisher.publish(draft.id,{revision:0,mediaIds:[asset.id]});
+    const slug=first.url.split('/').pop()!;
+    const snapshot=(await publicPublication(db,slug))!;
+    expect(snapshot.configuration).toEqual(draft.configuration);
+    expect(snapshot.media.map(row=>row.assetId)).toEqual([asset.id]);
+    expect(JSON.stringify(snapshot.configuration)).not.toContain('Private dashboard title');
+    const publicContext={params:Promise.resolve({slug,assetId:asset.id})};
+    expect((await mediaRoute.GET(new Request(`${origin}/i/${slug}/media/${asset.id}`),publicContext)).status).toBe(307);
+    expect(read).toHaveBeenCalledWith(asset.key,60);
+    const hidden=await db.mediaAsset.create({data:{ownerId:aliceId,key:'not-published',name:'Private photo',mime:'image/jpeg',size:3,ready:true,expiresAt:new Date()}});
+    expect((await mediaRoute.GET(new Request(`${origin}/i/${slug}/media/${hidden.id}`),{params:Promise.resolve({slug,assetId:hidden.id})})).status).toBe(404);
+    const { freshConfiguration,getTemplate }=await import('../src/lib/templates/registry');
+    const changed=freshConfiguration(getTemplate('kandyan-vows')!);changed.hosts='New private names';
+    await service.save(draft.id,{title:'New private title',revision:0,configuration:changed});
+    await db.mediaReference.deleteMany({where:{invitationId:draft.id}});
+    expect((await publicPublication(db,slug))!.configuration).toEqual(snapshot.configuration);
+    expect(await db.publicationMedia.count({where:{assetId:asset.id}})).toBe(1);
+    await expect(db.mediaAsset.delete({where:{id:asset.id}})).rejects.toBeTruthy();
+    const second=await publisher.publish(draft.id,{revision:1,mediaIds:[]});
+    expect(second.url).toBe(first.url);expect(second.publication.id).not.toBe(first.publication.id);
+    expect((await publicPublication(db,slug))!.configuration).toEqual(changed);
+    expect((await db.publication.findUniqueOrThrow({where:{id:first.publication.id}})).configuration).toEqual(snapshot.configuration);
+    const copy=await service.duplicate(draft.id);expect(copy.publicSlug).toBeNull();expect(copy.publicationId).toBeNull();await service.remove(copy.id);
+    await expect(publicationService(db,bobId).unpublish(draft.id)).rejects.toMatchObject({status:404});
+    await publisher.unpublish(draft.id);
+    expect(await publicPublication(db,slug)).toBeNull();
+    expect((await mediaRoute.GET(new Request(`${origin}/i/${slug}/media/${asset.id}`),publicContext)).status).toBe(404);
+    expect((await publisher.publish(draft.id,{revision:1,mediaIds:[]})).url).toBe(first.url);
+    await service.remove(draft.id);expect(await publicPublication(db,slug)).toBeNull();
+  } finally {
+    await db.invitation.deleteMany({where:{id:draft.id}});
+    await db.mediaAsset.deleteMany({where:{ownerId:aliceId}});read.mockRestore();
+  }
+});
+
+test('guest ownership, private responses, rate limits, revocation and simulated payment', async () => {
+  const { invitationService } = await import('../src/lib/invitations/service');
+  const { publicationService } = await import('../src/lib/invitations/publication');
+  const { guestService, guestInvitation, respondToGuest, guestCsv } = await import('../src/lib/invitations/guests');
+  const route = await import('../src/app/api/invitations/[id]/guests/route');
+  const rsvpRoute = await import('../src/app/api/rsvp/[token]/route');
+  const draft = await invitationService(db, aliceId).create({ templateSlug: 'kandyan-vows', title: 'RSVP test' });
+  const config = (await import('../src/lib/validation/invitation')).invitationConfigSchema.parse(draft.configuration);
+  config.rsvp.enabled = true; config.sections = config.sections.map(section => section.id === 'rsvp' ? { ...section, visible: true } : section);
+  await invitationService(db, aliceId).save(draft.id, { title: draft.title, revision: 0, configuration: config });
+  const service = guestService(db, aliceId); const publisher = publicationService(db, aliceId);
+  const context = { params: Promise.resolve({ id: draft.id }) }; const path = `/api/invitations/${draft.id}/guests`;
+  try {
+    expect((await route.GET(privateRequest(path, 'GET', ''), context)).status).toBe(401);
+    expect((await route.GET(privateRequest(path, 'GET', bobCookie), context)).status).toBe(404);
+    expect((await route.POST(privateRequest(path, 'POST', aliceCookie, { name: 'Guest', partySize: 2 }, 'https://evil.example'), context)).status).toBe(403);
+    const guest = await service.create(draft.id, { name: '=Guest', email: 'guest@example.com', partySize: 2 });
+    await expect(guestService(db, bobId).remove(draft.id, guest.id)).rejects.toMatchObject({ status: 404 });
+    await expect(guestService(db, bobId).rotate(draft.id, guest.id)).rejects.toMatchObject({ status: 404 });
+    expect(await guestInvitation(db, guest.token)).toBeNull();
+    await publisher.publish(draft.id, { revision: 1, mediaIds: [] });
+    const paymentAt = (await db.invitation.findUniqueOrThrow({ where: { id: draft.id } })).simulatedPaymentAt;
+    expect(paymentAt).toBeInstanceOf(Date);
+    await publisher.publish(draft.id, { revision: 1, mediaIds: [] });
+    expect((await db.invitation.findUniqueOrThrow({ where: { id: draft.id } })).simulatedPaymentAt).toEqual(paymentAt);
+    expect((await guestInvitation(db, guest.token))?.guest.name).toBe('=Guest');
+    const rsvpContext = { params: Promise.resolve({ token: guest.token }) };
+    expect((await rsvpRoute.POST(privateRequest(`/api/rsvp/${guest.token}`, 'POST', '', { response: 'ACCEPTED', attending: 1 }, 'https://evil.example'), rsvpContext)).status).toBe(403);
+    await expect(respondToGuest(db, guest.token, { response: 'ACCEPTED', attending: 3, note: '' })).rejects.toMatchObject({ status: 400 });
+    await expect(respondToGuest(db, guest.token, { response: 'DECLINED', attending: 1, note: '' })).rejects.toMatchObject({ status: 400 });
+    const response = await rsvpRoute.POST(privateRequest(`/api/rsvp/${guest.token}`, 'POST', '', { response: 'ACCEPTED', attending: 2, note: 'Vegetarian' }), rsvpContext);
+    expect(response.status).toBe(200);
+    await Promise.all(Array.from({ length: 4 }, () => respondToGuest(db, guest.token, { response: 'ACCEPTED', attending: 1, note: 'Updated' })));
+    await expect(respondToGuest(db, guest.token, { response: 'DECLINED', attending: 0, note: '' })).rejects.toMatchObject({ status: 429 });
+    expect(guestCsv(await service.list(draft.id))).toContain('"\'=Guest"');
+    expect(guestCsv(await service.list(draft.id))).not.toContain(guest.token);
+    await db.guest.update({ where: { id: guest.id }, data: { responseWindow: new Date(0) } });
+    await respondToGuest(db, guest.token, { response: 'DECLINED', attending: 0, note: '' });
+    expect((await service.list(draft.id))[0].response).toBe('DECLINED');
+    await publisher.unpublish(draft.id);
+    await expect(respondToGuest(db, guest.token, { response: 'ACCEPTED', attending: 1, note: '' })).rejects.toMatchObject({ status: 404 });
+    await publisher.publish(draft.id, { revision: 1, mediaIds: [] });
+    await service.rotate(draft.id, guest.id); expect(await guestInvitation(db, guest.token)).toBeNull();
+    const rotated = (await service.list(draft.id))[0]; expect(await guestInvitation(db, rotated.token)).toBeTruthy();
+    await service.remove(draft.id, guest.id); expect(await guestInvitation(db, rotated.token)).toBeNull();
+  } finally { await db.invitation.deleteMany({ where: { id: draft.id } }); }
+});
+
 test('logout revokes a session and expired sessions are refused', async () => {
   expect((await request('sign-out', {}, bobCookie, '127.0.0.7')).ok).toBe(true);
   expect(await auth.api.getSession({ headers: new Headers({ cookie: bobCookie }) })).toBeNull();

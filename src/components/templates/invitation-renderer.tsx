@@ -1,3 +1,7 @@
+import { InvitationMusic, InvitationMusicCredit } from './invitation-music';
+import { KandyanHero } from './kandyan-hero';
+import { InvitationMedia } from './invitation-media';
+import type { MediaPreview } from '@/lib/media/validation';
 import type { CSSProperties, ComponentType } from 'react';
 import type { InvitationConfig, SectionId } from '@/lib/validation/invitation';
 import type { TemplateDefinition } from '@/lib/templates/registry';
@@ -5,8 +9,8 @@ import { eventDateLabel, eventTimeLabel } from '@/lib/templates/time';
 import { Countdown } from './countdown';
 import { CinematicOpening } from './cinematic-opening';
 import { AnimatedInvitation } from './animated-invitation';
-type Props = { config: InvitationConfig; compact?: boolean };
-const fonts = { classic: "Georgia, 'Times New Roman', serif", romantic: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", modern: 'Arial, Helvetica, sans-serif' };
+type Props = { config: InvitationConfig; compact?: boolean; cover?: MediaPreview };
+const fonts = { classic: "Georgia, 'Times New Roman', serif", romantic: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", modern: 'Arial, Helvetica, sans-serif', sinhala: "'Abhaya Libre', Georgia, serif" };
 function Botanical({ floral = false }: { floral?: boolean }) {
   return <svg aria-hidden="true" className={`botanical ${floral ? 'botanical-floral' : ''}`} viewBox="0 0 240 120" fill="none"><path d="M20 104C82 108 101 41 210 14M77 91C46 67 43 54 48 38M122 58C106 31 111 22 126 11M165 34C169 52 177 67 197 68" stroke="currentColor" strokeWidth="1.4"/>{[[65,72],[111,57],[154,34],[180,24]].map(([x,y]) => <g key={x} transform={`translate(${x} ${y}) rotate(-25)`}><ellipse cx="-8" cy="-13" rx="8" ry="19" stroke="currentColor"/><ellipse cx="14" cy="7" rx="17" ry="7" stroke="currentColor"/></g>)}{floral && [[41,35],[123,10],[196,70]].map(([x,y]) => <g key={x} transform={`translate(${x} ${y})`}>{[0,60,120].map(angle => <ellipse key={angle} rx="8" ry="17" transform={`rotate(${angle})`} fill="currentColor" opacity=".2"/>)}<circle r="3" fill="currentColor"/></g>)}</svg>;
 }
@@ -20,8 +24,8 @@ function FloralHero(props: Props) { return <header className="inv-hero hero-flor
 function BirthdayHero(props: Props) { return <header className="inv-hero hero-birthday"><div className="confetti" aria-hidden="true">{Array.from({length: 12},(_,i)=><i key={i} style={{left:`${(i * 29) % 95}%`,top:`${(i * 41) % 85}%`,transform:`rotate(${i * 31}deg)`}}/>)}</div><span className="birthday-sun" aria-hidden="true">✹</span><HeroText {...props}/><p className="inv-eyebrow mt-8">Good times ahead</p></header>; }
 function EngagementHero(props: Props) { return <header className="inv-hero hero-engagement"><div className="engagement-rings" aria-hidden="true"><i/><i/></div><HeroText {...props}/><p className="serif mt-8 text-xl italic">A little yes. A lifetime of love.</p></header>; }
 function TraditionalHero(props: Props) { return <header className="inv-hero hero-traditional"><div className="traditional-frame"><span aria-hidden="true" className="traditional-rosette">❋</span><HeroText {...props}/><span aria-hidden="true" className="traditional-rosette">❋</span></div></header>; }
-function PhotoHero(props: Props) { return <header className="inv-hero hero-photo"><div className="photo-placeholder"><svg aria-hidden="true" viewBox="0 0 400 260"><rect width="400" height="260" fill="#bfcdb9"/><circle cx="280" cy="70" r="38" fill="#fff3d3"/><path d="M0 180Q100 80 220 170T400 135V260H0Z" fill="#81977e"/><path d="M0 215Q140 130 265 205T400 170V260H0Z" fill="#556e58"/></svg><span>Your cover photo</span></div><HeroText {...props}/></header>; }
-const heroes: Record<TemplateDefinition['kind'], ComponentType<Props>> = { elegant: ElegantHero, cinematic: CinematicHero, minimal: MinimalHero, floral: FloralHero, birthday: BirthdayHero, engagement: EngagementHero, traditional: TraditionalHero, photo: PhotoHero };
+function PhotoHero(props: Props) { return <header className="inv-hero hero-photo"><div className="photo-placeholder">{props.cover ? <img src={props.cover.url} alt={props.cover.name} className="h-full w-full object-cover" decoding="async"/> : <svg aria-hidden="true" viewBox="0 0 400 260"><rect width="400" height="260" fill="#bfcdb9"/><circle cx="280" cy="70" r="38" fill="#fff3d3"/><path d="M0 180Q100 80 220 170T400 135V260H0Z" fill="#81977e"/><path d="M0 215Q140 130 265 205T400 170V260H0Z" fill="#556e58"/></svg>}{!props.cover && <span>Your cover photo</span>}</div><HeroText {...props}/></header>; }
+const heroes: Record<TemplateDefinition['kind'], ComponentType<Props>> = { elegant: ElegantHero, cinematic: CinematicHero, minimal: MinimalHero, floral: FloralHero, birthday: BirthdayHero, engagement: EngagementHero, traditional: TraditionalHero, photo: PhotoHero, kandyan: KandyanHero };
 function Section({ id, config }: { id: SectionId; config: InvitationConfig }) {
   if (id === 'story') return <section className="inv-section"><p className="inv-eyebrow">A note from us</p><h3>Some moments deserve good company.</h3><p className="inv-body">{config.description}</p></section>;
   if (id === 'details') return <section className="inv-section"><p className="inv-eyebrow">The celebration</p><h3>{config.venue || 'A special place'}</h3><p className="inv-body">{config.address}</p><p className="inv-body">{eventDateLabel(config.dateTime)}{config.dateTime && <><br/>{eventTimeLabel(config.dateTime)} · {config.timeZone.replace(/_/g, ' ')}</>}</p>{config.mapUrl && /^https:\/\//.test(config.mapUrl) && <a className="inv-link" href={config.mapUrl} target="_blank" rel="noopener noreferrer">View location ↗</a>}{config.dressCode && <div className="inv-detail"><p className="inv-eyebrow">Dress code</p><p>{config.dressCode}</p></div>}{config.extraInfo && <p className="inv-body">{config.extraInfo}</p>}</section>;
@@ -29,10 +33,11 @@ function Section({ id, config }: { id: SectionId; config: InvitationConfig }) {
   if (id === 'rsvp' && config.rsvp.enabled) return <section className="inv-section"><p className="inv-eyebrow">Save us a seat</p><h3>Will you join us?</h3><p className="inv-body">{config.rsvp.note}</p><p className="inv-small">Responses will be available when guest links are ready.</p></section>;
   return null;
 }
-export function InvitationRenderer({ template, configuration, compact = false, showOpening = true }: { template: TemplateDefinition; configuration: InvitationConfig; compact?: boolean; showOpening?: boolean }) {
+export function InvitationRenderer({ template, configuration, compact = false, showOpening = true, media = [] }: { template: TemplateDefinition; configuration: InvitationConfig; compact?: boolean; showOpening?: boolean; media?: MediaPreview[] }) {
   const Hero = heroes[template.kind];
+  const visibleMedia = media.filter(item => !item.mime.startsWith('audio/'));
   const style = { '--inv-background': configuration.theme.background, '--inv-ink': configuration.theme.ink, '--inv-accent': configuration.theme.accent, '--inv-font': fonts[configuration.theme.font] } as CSSProperties;
-  const body = <><Hero config={configuration} compact={compact}/>{!compact && <>{configuration.countdown && configuration.dateTime && <Countdown dateTime={configuration.dateTime} timeZone={configuration.timeZone}/>}<div className="inv-sections">{configuration.sections.filter(s=>s.visible).map(section=><Section key={section.id} id={section.id} config={configuration}/>)}</div><footer className="inv-footer"><span aria-hidden="true">✳</span><p>With love, {configuration.hosts}</p></footer></>}</>;
+  const body = <>{!compact && <InvitationMusic settings={configuration.music} media={media}/>}<Hero config={configuration} compact={compact} cover={media.find(item=>item.mime.startsWith('image/'))}/>{!compact && <>{configuration.countdown && configuration.dateTime && <Countdown dateTime={configuration.dateTime} timeZone={configuration.timeZone}/>}<div className="inv-sections">{configuration.sections.filter(s=>s.visible).map(section=>section.id === 'gallery' && visibleMedia.length > 0 ? <InvitationMedia key={section.id} items={visibleMedia}/> : <Section key={section.id} id={section.id} config={configuration}/>)}</div><footer className="inv-footer"><span aria-hidden="true">✳</span><p>With love, {configuration.hosts}</p><InvitationMusicCredit settings={configuration.music}/></footer></>}</>;
   return <article className={`invitation invitation-${template.kind} ${compact ? 'invitation-compact' : ''}`} style={style} aria-label={`${configuration.hosts} invitation`}>
     {compact ? body : <AnimatedInvitation kind={template.kind}>{template.cinematic && showOpening ? <CinematicOpening enabled={configuration.opening === 'reveal'}>{body}</CinematicOpening> : body}</AnimatedInvitation>}
   </article>;

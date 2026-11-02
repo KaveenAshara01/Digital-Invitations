@@ -19,6 +19,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   invitations   Invitation[]
+  mediaAssets   MediaAsset[]
 }
 
 model Session {
@@ -97,10 +98,11 @@ model TemplateVersion {
   definition Json @db.JsonB
   createdAt DateTime @default(now())
   invitations Invitation[]
+  publications Publication[]
   @@unique([templateId, version])
 }
 
-// Published snapshots, media and guests are introduced in their respective phases.
+// Drafts and their immutable publication snapshots. Guest management follows in Phase 5.
 model Invitation {
   id            String           @id @default(cuid())
   ownerId       String
@@ -111,8 +113,82 @@ model Invitation {
   templateVersionId String?
   templateVersion TemplateVersion? @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
   revision Int @default(0)
+  media MediaReference[]
+  publicSlug String? @unique
+  publicationId String? @unique
+  publication Publication? @relation("CurrentPublication", fields: [publicationId], references: [id], onDelete: SetNull)
+  publications Publication[] @relation("Snapshots")
+  guests Guest[]
+  simulatedPaymentAt DateTime?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   @@index([ownerId, updatedAt])
+}
+
+model MediaAsset {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  key String @unique
+  name String
+  mime String
+  size Int
+  artist String?
+  license String?
+  loop Boolean @default(false)
+  ready Boolean @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  references MediaReference[]
+  publications PublicationMedia[]
+  @@index([ownerId, createdAt])
+}
+
+model MediaReference {
+  invitationId String
+  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  assetId String
+  asset MediaAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  @@id([invitationId, assetId])
+}
+
+model Publication {
+  id String @id @default(cuid())
+  invitationId String
+  invitation Invitation @relation("Snapshots", fields: [invitationId], references: [id], onDelete: Cascade)
+  currentFor Invitation? @relation("CurrentPublication")
+  templateVersionId String
+  templateVersion TemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  configuration Json @db.JsonB
+  revision Int
+  createdAt DateTime @default(now())
+  media PublicationMedia[]
+  @@index([invitationId, createdAt])
+}
+
+model PublicationMedia {
+  publicationId String
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  assetId String
+  asset MediaAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  @@id([publicationId, assetId])
+}
+
+model Guest {
+  id String @id @default(cuid())
+  invitationId String
+  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  name String
+  email String?
+  token String @unique @default(uuid())
+  partySize Int @default(1)
+  response String @default("PENDING")
+  attending Int @default(0)
+  note String @default("")
+  respondedAt DateTime?
+  responseWindow DateTime?
+  responseAttempts Int @default(0)
+  createdAt DateTime @default(now())
+  @@index([invitationId, createdAt])
 }
